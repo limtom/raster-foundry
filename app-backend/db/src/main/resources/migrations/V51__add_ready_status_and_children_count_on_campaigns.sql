@@ -3,6 +3,14 @@ ALTER TABLE public.campaigns
 ADD COLUMN children_count INTEGER NOT NULL default 0,
 ADD COLUMN is_ready BOOLEAN NOT NULL default false;
 
+-- add indices
+CREATE INDEX IF NOT EXISTS campaigns_children_count_idx
+ON public.campaigns
+USING btree (children_count);
+CREATE INDEX IF NOT EXISTS campaigns_is_ready_idx
+ON public.campaigns
+USING btree (is_ready);
+
 -- update children_count column for existing campaigns
 UPDATE public.campaigns
 SET children_count = campaign_children_count.children_count
