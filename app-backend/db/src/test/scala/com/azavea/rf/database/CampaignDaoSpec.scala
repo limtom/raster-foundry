@@ -47,6 +47,14 @@ class CampaignDaoSpec
             insertedCampaign.owner == insertedUser.id,
             "Inserted campaign owner is correct"
           )
+          assert(
+            insertedCampaign.childrenCount == 0,
+            "Inserted campaign has no children, yay"
+          )
+          assert(
+            insertedCampaign.isReady == false,
+            "Inserted campaign is not ready because there is no project"
+          )
           true
         }
       )
@@ -210,14 +218,28 @@ class CampaignDaoSpec
             insertedProject <- AnnotationProjectDao
               .insert(
                 annotationProjectCreate.copy(
-                  campaignId = Some(insertedCampaign.id)
+                  campaignId = Some(insertedCampaign.id),
+                  status = AnnotationProjectStatus.Waiting
                 ),
                 user
               )
+            _ <- AnnotationProjectDao.update(
+              insertedProject.toProject
+                .copy(status = AnnotationProjectStatus.Ready),
+              insertedProject.id
+            )
             campaignCopy <- CampaignDao.copyCampaign(insertedCampaign.id, user)
+            insertedCampaignAfterCopy <- CampaignDao.unsafeGetCampaignById(
+              insertedCampaign.id
+            )
             projectCopy <- AnnotationProjectDao.listByCampaign(campaignCopy.id)
           } yield {
-            (insertedCampaign, insertedProject, campaignCopy, projectCopy)
+            (
+              insertedCampaignAfterCopy,
+              insertedProject,
+              campaignCopy,
+              projectCopy
+            )
           }
 
           val (
@@ -227,6 +249,18 @@ class CampaignDaoSpec
             copiedProject
           ) = copyIO.transact(xa).unsafeRunSync
 
+          assert(
+            originalCampaign.childrenCount == 1,
+            "Original campaign has 1 child after copying"
+          )
+          assert(
+            originalCampaign.isReady == true,
+            "Original campaign is ready because annotation project status is updated to ready"
+          )
+          assert(
+            copiedCampaign.isReady == true,
+            "Copied campaign is ready because the original campaign is ready"
+          )
           assert(
             originalCampaign.name == copiedCampaign.name,
             "Copy of the campaign worked"

@@ -17,7 +17,9 @@ final case class Campaign(
     partnerName: Option[String] = None,
     partnerLogo: Option[String] = None,
     parentCampaignId: Option[UUID] = None,
-    continent: Option[Continent] = None
+    continent: Option[Continent] = None,
+    childrenCount: Int,
+    isReady: Boolean
 )
 
 object Campaign {
